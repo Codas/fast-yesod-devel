@@ -66,7 +66,8 @@ shouldReload event = not (foldr (||) False conditions)
         fn = case (toText (filename fp)) of
                 Left filePath -> filePath
                 Right filePath -> filePath
-        conditions = [notInPath ".git", notInPath "yesod-devel", notInPath "dist", notInFile "#"]
+        conditions = [ notInPath ".git", notInPath "yesod-devel", notInPath "dist"
+                     , notInFile "#", notInPath ".cabal-sandbox"]
         notInPath t = t `isInfixOf` p
         notInFile t = t `isInfixOf` fn
 
