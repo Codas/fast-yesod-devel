@@ -3,6 +3,9 @@ fast-yesod-devel
 
 Small haskell command line programm to speed up yesod reload. In the spirit of https://gist.github.com/maerten/2c9152f68e2bbefa93ac
 
+# State
+This is by far not ready for anything at the moment and some of the unterlying assumtpions are plain wrong.
+A rewrite based on yesods scaffolding DevelMain.hs is probably in order.
 
 # Install
 Just combine the binary. Either globally:
