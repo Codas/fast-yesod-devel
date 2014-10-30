@@ -34,40 +34,41 @@ replThread chan =
   do readChan <- atomically (dupTChan chan)
      bracket newRepl
              (\(_, _, _, process) -> do interruptProcessGroupOf process
-                                        threadDelay 200000
+                                        threadDelay 100000
                                         terminateProcess process
+                                        threadDelay 100000
                                         waitForProcess process)
-             (\(Just replIn, _, _, process) ->
+             (\(Just replIn, _, _, _) ->
                do hSetBuffering replIn LineBuffering
                   threadDelay 1000000
                   hPutStrLn replIn loadString
-                  hPutStrLn replIn "import Network.Wai.Handler.Warp"
                   hPutStrLn replIn startString
                   forever (do event <- atomically (readTChan readChan)
+                              putStrLn "-----------------------------"
                               print event
-                              interruptProcessGroupOf process
+                              putStrLn "-----------------------------"
                               hPutStrLn replIn loadString
                               hPutStrLn replIn startString))
-  where startString = "getApplicationDev >>= \\(port, app) -> runSettings (setPort port defaultSettings) app"
-        loadString = ":load Application"
+  where startString = "update"
+        loadString = ":load app/DevelMain.hs"
 
 wtf :: Show a1 => a -> a1 -> a
 wtf v x = trace (show x) v
 
 shouldReload :: Event -> Bool
-shouldReload event = not (foldr (||) False conditions)
+shouldReload event = not (or conditions)
   where fp = case event of
               Added filePath _ -> filePath
               Modified filePath _ -> filePath
               Removed filePath _ -> filePath
-        p = case (toText fp) of
+        p = case toText fp of
               Left filePath -> filePath
               Right filePath -> filePath
-        fn = case (toText (filename fp)) of
+        fn = case toText (filename fp) of
                 Left filePath -> filePath
                 Right filePath -> filePath
         conditions = [ notInPath ".git", notInPath "yesod-devel", notInPath "dist"
-                     , notInFile "#", notInPath ".cabal-sandbox"]
+                     , notInFile "#", notInPath ".cabal-sandbox", notInFile "flycheck_"]
         notInPath t = t `isInfixOf` p
         notInFile t = t `isInfixOf` fn
 
@@ -75,7 +76,7 @@ reloadApplication :: TChan Event -> Event -> IO ()
 reloadApplication chan event = atomically (writeTChan chan event)
 
 newRepl :: IO (Maybe Handle, Maybe Handle, Maybe Handle, ProcessHandle)
-newRepl = createProcess (newProc "cabal" ["repl"])
+newRepl = createProcess (newProc "cabal" ["repl", "--ghc-options=-O0", "--ghc-options=-fobject-code"])
 
 newProc :: FilePath -> [String] -> CreateProcess
 newProc cmd args = CreateProcess {cmdspec = RawCommand cmd args
